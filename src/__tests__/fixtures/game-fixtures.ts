@@ -421,7 +421,10 @@ export const fixtures: readonly GameFixture[] = [
       ],
       scoreDelta: 0,
       isOver: false,
-      isWon: true, // 2048 tile is present
+      // No merge occurs in this move — the reducer only sets won=true when a
+      // tile reaches WIN_VALUE via a merge. A 2048 tile pre-existing on the
+      // board does not retroactively trigger the win flag.
+      isWon: false,
       isKeepingPlaying: false,
     },
   },
