@@ -4,3 +4,6 @@ dist/
 .forge-commit-ready
 .forge/project-id
 .claude/hooks/
+.cursor/hooks.json
+.cursor/hooks/
+.cursor/rules/forge-workflow.mdc
