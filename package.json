@@ -1,0 +1,30 @@
+{
+  "name": "revamp-2048",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Modernized 2048 — React 19 + TypeScript + Vite with optional 3D tile rendering via React Three Fiber.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Prashanthiopsera/revamp-2048.git"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "echo \"WO-002 will wire up the Vite dev server\" && exit 0",
+    "build": "echo \"WO-002 will wire up the Vite production build\" && exit 0",
+    "preview": "echo \"WO-002 will wire up the Vite preview server\" && exit 0",
+    "lint": "echo \"WO-004 will wire up ESLint\" && exit 0",
+    "test": "echo \"WO-005 will wire up Vitest\" && exit 0"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0"
+  }
+}
