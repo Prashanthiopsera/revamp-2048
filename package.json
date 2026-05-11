@@ -10,9 +10,9 @@
   },
   "type": "module",
   "scripts": {
-    "dev": "echo \"WO-002 will wire up the Vite dev server\" && exit 0",
-    "build": "echo \"WO-002 will wire up the Vite production build\" && exit 0",
-    "preview": "echo \"WO-002 will wire up the Vite preview server\" && exit 0",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "lint": "echo \"WO-004 will wire up ESLint\" && exit 0",
     "test": "echo \"WO-005 will wire up Vitest\" && exit 0"
   },
