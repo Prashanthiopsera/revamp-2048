@@ -12,8 +12,49 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Security scans run in parallel with quality to minimize total pipeline time.
+  # Failures here block the deploy job via the `needs` chain on quality.
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: read
+      security-events: write # required to upload SARIF reports if added later
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history is needed for accurate secret-scan coverage
+          fetch-depth: 0
+
+      - name: Secret scanning (Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITLEAKS_LICENSE is not required for public repos
+        # .gitleaksignore at repo root suppresses known false positives
+
+      - name: Set up Node 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies (frozen lockfile)
+        run: npm ci
+
+      - name: Dependency vulnerability audit
+        # Fail the pipeline on any high or critical vulnerability in production deps.
+        # --omit=dev excludes devDependencies since they never ship to production.
+        run: npm audit --audit-level=high --omit=dev
+
   quality:
     name: Lint · Type-check · Test · Build
+    # Quality runs in parallel with security; deploy needs both to pass.
+    needs: []
     runs-on: ubuntu-latest
     timeout-minutes: 8 # PRD SLO: PR feedback under 8 minutes
 
@@ -44,7 +85,7 @@ jobs:
 
   deploy:
     name: Deploy to GitHub Pages
-    needs: quality
+    needs: [quality, security]
     # Only deploy on pushes to main — PRs never trigger deployment
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest

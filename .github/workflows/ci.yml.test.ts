@@ -65,4 +65,17 @@ describe("GitHub Actions CI workflow (WO-006)", () => {
     expect(RAW).toMatch(/github\.event_name == 'push'/);
     expect(RAW).toMatch(/github\.ref == 'refs\/heads\/main'/);
   });
+
+  // WO-007: security scanning
+  it("includes a Gitleaks secret scanning step", () => {
+    expect(RAW).toMatch(/gitleaks\/gitleaks-action/);
+  });
+
+  it("includes an npm audit step at high severity level", () => {
+    expect(RAW).toMatch(/npm audit --audit-level=high/);
+  });
+
+  it("security job runs in parallel (deploy needs both quality and security)", () => {
+    expect(RAW).toMatch(/needs:\s*\[quality,\s*security\]/);
+  });
 });
