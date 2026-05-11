@@ -1,4 +1,5 @@
 node_modules/
+dist/
 
 .forge-commit-ready
 .forge/project-id
