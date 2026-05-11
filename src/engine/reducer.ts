@@ -40,6 +40,8 @@ import type { Tile } from "./tile.js";
 export interface GameState {
   readonly grid: Grid;
   readonly score: number;
+  /** All-time best score across restarts. Persisted separately from game state. */
+  readonly bestScore: number;
   /** True when no moves remain. */
   readonly over: boolean;
   /** True when a tile has reached WIN_VALUE. */
@@ -68,12 +70,12 @@ export type GameAction =
 // ---------------------------------------------------------------------------
 
 /** Creates a fresh game state with STARTING_TILE_COUNT random tiles. */
-export function createInitialState(size: number = GRID_SIZE): GameState {
+export function createInitialState(size: number = GRID_SIZE, bestScore = 0): GameState {
   const grid = Grid.empty(size);
   for (let i = 0; i < STARTING_TILE_COUNT; i++) {
     grid.addRandomTile(SPAWN_PROBABILITY_OF_TWO);
   }
-  return { grid, score: 0, over: false, won: false, isKeepingPlaying: false };
+  return { grid, score: 0, bestScore, over: false, won: false, isKeepingPlaying: false };
 }
 
 // ---------------------------------------------------------------------------
@@ -201,12 +203,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       const newScore = state.score + scoreDelta;
+      const newBestScore = Math.max(state.bestScore, newScore);
       const isOver = !movesAvailable(grid);
       const isWon = state.won || won; // Win is sticky
 
       return {
         grid,
         score: newScore,
+        bestScore: newBestScore,
         over: isOver,
         won: isWon,
         isKeepingPlaying: state.isKeepingPlaying,
@@ -220,7 +224,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case "RESTART": {
-      return createInitialState(state.grid.size);
+      // Preserve bestScore across restarts — it is an all-time record.
+      return createInitialState(state.grid.size, state.bestScore);
     }
   }
 }

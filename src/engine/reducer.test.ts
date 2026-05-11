@@ -31,7 +31,7 @@ function stateFromMatrix(
       if (v !== 0) grid.insertTile(createTile({ x, y }, v));
     }
   }
-  return { grid, score, over: false, won, isKeepingPlaying };
+  return { grid, score, bestScore: 0, over: false, won, isKeepingPlaying };
 }
 
 /** Converts a Grid to a 4×4 number matrix (0 = empty). */
