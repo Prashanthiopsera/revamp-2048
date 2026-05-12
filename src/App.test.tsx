@@ -1,8 +1,9 @@
 /**
- * Tests for App.tsx and GameApp.tsx (WO-017).
+ * Tests for App.tsx and GameApp.tsx (WO-017, WO-027).
  *
  * These are integration tests — they render the full component tree and verify
- * that the semantic structure, strings, and basic interactions work.
+ * that the semantic structure, strings, basic interactions, and 2D/3D toggle
+ * behaviour work correctly.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
@@ -40,6 +41,16 @@ vi.mock("./capabilities.js", () => ({
     touch: false,
     pointer: true,
   })),
+}));
+
+// Stub Board3DLazy so switching to 3D doesn't require WebGL / R3F
+vi.mock("./components/Board3DLazy.js", () => ({
+  Board3DLazy: () => <div data-testid="board-3d-stub">3D Board</div>,
+}));
+
+// Stub usePerformanceMonitor so it doesn't run rAF loops in tests
+vi.mock("./hooks/usePerformanceMonitor.js", () => ({
+  usePerformanceMonitor: vi.fn(),
 }));
 
 beforeEach(() => {
@@ -139,5 +150,72 @@ describe("App (WO-017)", () => {
   it("game board has aria-label for accessibility", () => {
     render(<App />);
     expect(screen.getByRole("main", { name: "2048 game board" })).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// WO-027: 2D/3D rendering toggle with state preservation
+// ---------------------------------------------------------------------------
+
+describe("2D/3D rendering toggle (WO-027)", () => {
+  it("renders the 2D board by default (first visit)", () => {
+    render(<App />);
+    expect(screen.getByTestId("board")).toBeInTheDocument();
+    expect(screen.queryByTestId("board-3d-stub")).toBeNull();
+  });
+
+  it("switches to 3D board when toggle is clicked", () => {
+    render(<App />);
+    const btn = screen.getByRole("button", { name: strings.RENDER_MODE_TOGGLE_LABEL });
+    fireEvent.click(btn);
+    expect(screen.getByTestId("board-3d-stub")).toBeInTheDocument();
+    expect(screen.queryByTestId("board")).toBeNull();
+  });
+
+  it("switching back to 2D restores the 2D board", () => {
+    render(<App />);
+    const btn = screen.getByRole("button", { name: strings.RENDER_MODE_TOGGLE_LABEL });
+    fireEvent.click(btn); // → 3D
+    fireEvent.click(btn); // → 2D
+    expect(screen.getByTestId("board")).toBeInTheDocument();
+    expect(screen.queryByTestId("board-3d-stub")).toBeNull();
+  });
+
+  it("game score is preserved when toggling between 2D and 3D", () => {
+    render(<App />);
+    // Score starts at 0 in 2D
+    expect(
+      screen.getByLabelText(strings.SCORE_ANNOUNCEMENT.replace("{score}", "0")),
+    ).toBeInTheDocument();
+    // Toggle to 3D
+    const btn = screen.getByRole("button", { name: strings.RENDER_MODE_TOGGLE_LABEL });
+    fireEvent.click(btn);
+    // Score is still visible (mode toggle does not reset game state)
+    expect(
+      screen.getByLabelText(strings.SCORE_ANNOUNCEMENT.replace("{score}", "0")),
+    ).toBeInTheDocument();
+  });
+
+  it("persists mode preference to storage when toggling", async () => {
+    const { storage } = vi.mocked(await import("./storage.js"));
+    render(<App />);
+    const btn = screen.getByRole("button", { name: strings.RENDER_MODE_TOGGLE_LABEL });
+    fireEvent.click(btn); // → 3D
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(vi.mocked(storage.setUserPreference)).toHaveBeenCalledWith({ renderMode: "3d" });
+  });
+
+  it("disables the toggle when WebGL is unavailable", async () => {
+    const caps = await import("./capabilities.js");
+    vi.mocked(caps.hasWebGL).mockReturnValueOnce(false);
+    render(<App />);
+    const btn = screen.getByRole("button", { name: strings.RENDER_MODE_TOGGLE_LABEL });
+    expect(btn).toBeDisabled();
+  });
+
+  it("renders the board container with data-render-mode attribute", () => {
+    render(<App />);
+    const boardContainer = screen.getByTestId("board").closest("[data-render-mode]");
+    expect(boardContainer).toHaveAttribute("data-render-mode", "2d");
   });
 });

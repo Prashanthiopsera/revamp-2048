@@ -264,6 +264,90 @@ describe("useInputHandler — touch/swipe", () => {
 });
 
 // ---------------------------------------------------------------------------
+// useInputHandler — animation lock (WO-047)
+// ---------------------------------------------------------------------------
+
+describe("useInputHandler — animation lock (WO-047)", () => {
+  let dispatch: ReturnType<typeof makeDispatch>;
+
+  beforeEach(() => {
+    dispatch = makeDispatch();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("touch swipes during animation lock are ignored", () => {
+    renderHook(() => { useInputHandler(dispatch, false, { lockMs: 150 }); });
+
+    fireSwipe(SWIPE_THRESHOLD_PX + 10, 0); // dispatched + locks
+    fireSwipe(SWIPE_THRESHOLD_PX + 10, 0); // suppressed
+    expect(dispatch).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(200); // lock expires
+    fireSwipe(SWIPE_THRESHOLD_PX + 10, 0); // now accepted
+    expect(dispatch).toHaveBeenCalledTimes(2);
+  });
+
+  it("keyboard input during animation lock is ignored", () => {
+    renderHook(() => { useInputHandler(dispatch, false, { lockMs: 150 }); });
+
+    fireKey("ArrowRight"); // dispatched + locks
+    fireKey("ArrowRight"); // suppressed
+    fireKey("ArrowLeft");  // also suppressed
+    expect(dispatch).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(200); // lock expires
+    fireKey("ArrowLeft"); // now accepted
+    expect(dispatch).toHaveBeenCalledTimes(2);
+  });
+
+  // Integration scenario from WO-047 AC-6:
+  // "dispatch MOVE, immediately dispatch another MOVE, verify only one state change"
+  it("only one MOVE is processed per animation cycle when two inputs arrive < lockMs apart", () => {
+    renderHook(() => { useInputHandler(dispatch, false, { lockMs: 100 }); });
+
+    // Simulate two rapid inputs within 50 ms of each other
+    fireKey("ArrowLeft"); // t=0, dispatched
+    vi.advanceTimersByTime(50); // t=50, still locked
+    fireKey("ArrowRight"); // suppressed
+    vi.advanceTimersByTime(30); // t=80, still locked
+    fireKey("ArrowUp");   // suppressed
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch).toHaveBeenCalledWith({ type: "MOVE", direction: "left" });
+
+    // After lock expires, the next input goes through
+    vi.advanceTimersByTime(30); // t=110, lock expired
+    fireKey("ArrowDown");
+    expect(dispatch).toHaveBeenCalledTimes(2);
+    expect(dispatch).toHaveBeenLastCalledWith({ type: "MOVE", direction: "down" });
+  });
+
+  it("lock does not suppress RESTART — player can always start a new game", () => {
+    renderHook(() => { useInputHandler(dispatch, false, { lockMs: 150 }); });
+
+    fireKey("ArrowLeft"); // dispatched + locks
+    fireKey("r");         // RESTART bypasses lock
+    expect(dispatch).toHaveBeenCalledTimes(2);
+    expect(dispatch).toHaveBeenCalledWith({ type: "RESTART" });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// useInputHandler — lock duration matches config (WO-047)
+// ---------------------------------------------------------------------------
+
+describe("animation lock duration (WO-047)", () => {
+  it("ANIMATION_INPUT_LOCK_MS equals ANIMATION_DURATION_SLIDE from config", async () => {
+    const { ANIMATION_DURATION_SLIDE } = await import("../config.js");
+    expect(ANIMATION_INPUT_LOCK_MS).toBe(ANIMATION_DURATION_SLIDE);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Exported constants
 // ---------------------------------------------------------------------------
 

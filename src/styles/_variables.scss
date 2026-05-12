@@ -18,29 +18,37 @@ $font-size-score: 25px;
 
 // Colours — body
 $color-bg: #faf8ef;
-$color-text: #776e65;
+// Darkened from #776e65 to pass WCAG 2.1 AA 4.5:1 on tile backgrounds (WO-029).
+$color-text: #4a3f38;
 $color-text-light: #f9f6f2;
 $color-tile-bg: #eee4da;
 $color-board: #bbada0;
 $color-tile-empty: rgba(238, 228, 218, 0.35);
 
 // Score boxes
-$color-score-bg: #bbada0;
-$color-score-text: #eee4da;
+// Darkened from #bbada0 to achieve 5:1 contrast with $color-text-light (WO-029).
+$color-score-bg: #6e6560;
+$color-score-text: $color-text-light;
 
 // Tile colours — value → background, text
+// All tiles now use $color-text (dark) for WCAG 2.1 AA compliance (WO-029).
+// Tile values are rendered at large font sizes (≥ 35px), so the 3:1 large-text
+// threshold applies for tiles 32+ on their orange/red backgrounds. The dark
+// text at #4a3f38 achieves 3.15:1 on the lowest-contrast tile (#f65e3b / 64),
+// and 5.44:1 on tile-8, satisfying the requirement across all standard values.
+// Super tiles (> 2048) use $color-text-light on a dark background (#3c3a32).
 $tile-colors: (
   2:    (#eee4da, $color-text),
   4:    (#ede0c8, $color-text),
-  8:    (#f2b179, $color-text-light),
-  16:   (#f59563, $color-text-light),
-  32:   (#f67c5f, $color-text-light),
-  64:   (#f65e3b, $color-text-light),
-  128:  (#edcf72, $color-text-light),
-  256:  (#edcc61, $color-text-light),
-  512:  (#edc850, $color-text-light),
-  1024: (#edc53f, $color-text-light),
-  2048: (#edc22e, $color-text-light),
+  8:    (#f2b179, $color-text),
+  16:   (#f59563, $color-text),
+  32:   (#f67c5f, $color-text),
+  64:   (#f65e3b, $color-text),
+  128:  (#edcf72, $color-text),
+  256:  (#edcc61, $color-text),
+  512:  (#edc850, $color-text),
+  1024: (#edc53f, $color-text),
+  2048: (#edc22e, $color-text),
 );
 
 // Tile font sizes — value → font-size

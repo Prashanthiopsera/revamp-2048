@@ -25,8 +25,14 @@ import type { Tile, Position, TileData } from "./tile.js";
 // Serialized grid shape
 // ---------------------------------------------------------------------------
 
+/**
+ * JSON-safe snapshot of the grid used for localStorage persistence.
+ * Passed to `Grid.fromState()` to reconstruct a live Grid instance.
+ */
 export interface GridData {
+  /** Side length of the grid (4 for a standard 2048 game). */
   readonly size: number;
+  /** Row-major cell matrix: `cells[y][x]` is a `TileData` or `null` (empty). */
   readonly cells: readonly (TileData | null)[][];
 }
 

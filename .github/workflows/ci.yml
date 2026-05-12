@@ -83,6 +83,53 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Check bundle size budgets
+        # Fails CI if main chunk ≥ 200 KB gzipped or 3D lazy chunk ≥ 300 KB gzipped
+        run: npm run bundle:check
+
+      - name: Upload bundle analysis report
+        if: always() # upload even when the budget check fails so devs can debug
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-stats
+          path: dist/stats.html
+          retention-days: 30
+
+  lighthouse:
+    name: Lighthouse CI
+    needs: [quality]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies (frozen lockfile)
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Run Lighthouse CI
+        # Serves dist/ via LHCI's built-in static server, then runs Lighthouse
+        # and asserts: performance ≥ 0.90, accessibility ≥ 0.90, best-practices ≥ 0.85.
+        run: npm run lhci
+
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: .lighthouseci
+          retention-days: 30
+
   deploy:
     name: Deploy to GitHub Pages
     needs: [quality, security]
@@ -114,6 +161,10 @@ jobs:
         run: npm ci
 
       - name: Build
+        # Derive the base path from GITHUB_REPOSITORY (e.g. "owner/revamp-2048" → "/revamp-2048/").
+        # For repos deployed at a custom domain or org root, override VITE_BASE_PATH to "/".
+        env:
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
         run: npm run build
 
       - name: Upload Pages artifact

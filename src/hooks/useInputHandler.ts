@@ -32,6 +32,7 @@ import type { GameAction } from "../engine/reducer.js";
 // Types
 // ---------------------------------------------------------------------------
 
+/** A move direction as interpreted from keyboard or swipe input. */
 export type InputDirection = "up" | "down" | "left" | "right";
 
 /**
@@ -94,6 +95,12 @@ export function resolveSwipeDirection(
 // Hook
 // ---------------------------------------------------------------------------
 
+/**
+ * Optional configuration for `useInputHandler`.
+ *
+ * @example
+ * useInputHandler(dispatch, isTerminated, { lockMs: 150 });
+ */
 export interface UseInputHandlerOptions {
   /** Milliseconds to suppress input after a dispatch. Defaults to ANIMATION_INPUT_LOCK_MS. */
   readonly lockMs?: number;

@@ -13,6 +13,7 @@ import type { Tile, Position } from "./tile.js";
 // Direction types
 // ---------------------------------------------------------------------------
 
+/** The four cardinal move directions available to the player. */
 export type Direction = "up" | "down" | "left" | "right";
 
 /** Axis-aligned unit vector for a move direction. */
@@ -21,6 +22,13 @@ export interface Vector {
   readonly y: -1 | 0 | 1;
 }
 
+/**
+ * Converts a named move direction to its axis-aligned unit vector.
+ *
+ * @example
+ * directionToVector("left") // → { x: -1, y: 0 }
+ * directionToVector("down") // → { x: 0, y: 1 }
+ */
 export function directionToVector(direction: Direction): Vector {
   const map: Record<Direction, Vector> = {
     up: { x: 0, y: -1 },

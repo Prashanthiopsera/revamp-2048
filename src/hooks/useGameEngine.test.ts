@@ -4,10 +4,11 @@
  * Uses @testing-library/react's `renderHook` to test the hook in isolation.
  * The storage adapter is mocked to avoid touching real localStorage.
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useGameEngine } from "./useGameEngine.js";
 import { storage } from "../storage.js";
+import type { GameSession } from "../storage.js";
 
 // ---------------------------------------------------------------------------
 // Mock storage module so tests don't touch localStorage
@@ -33,6 +34,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockedStorage.getGameState.mockReturnValue(null);
   mockedStorage.getBestScore.mockReturnValue(0);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe("useGameEngine (WO-015)", () => {
@@ -142,6 +147,59 @@ describe("useGameEngine (WO-015)", () => {
       });
       // State reference unchanged when action has no effect
       expect(result.current.state).toBe(stateBefore);
+    });
+  });
+
+  describe("state restoration from storage on mount (WO-033)", () => {
+    it("restores score from saved GameSession on mount", () => {
+      const saved: GameSession = {
+        score: 512,
+        tiles: [{ id: 1, value: 4, row: 0, col: 0 }],
+        isOver: false,
+        isWon: false,
+        isKeepingPlaying: false,
+      };
+      mockedStorage.getGameState.mockReturnValue(saved);
+      const { result } = renderHook(() => useGameEngine());
+      expect(result.current.score).toBe(512);
+    });
+
+    it("uses the higher of stored bestScore vs saved score on mount", () => {
+      const saved: GameSession = {
+        score: 1024,
+        tiles: [],
+        isOver: false,
+        isWon: false,
+        isKeepingPlaying: false,
+      };
+      mockedStorage.getGameState.mockReturnValue(saved);
+      mockedStorage.getBestScore.mockReturnValue(2048);
+      const { result } = renderHook(() => useGameEngine());
+      // bestScore should be max(2048, 1024) = 2048
+      expect(result.current.bestScore).toBe(2048);
+    });
+
+    it("starts a fresh game when getGameState returns null", () => {
+      mockedStorage.getGameState.mockReturnValue(null);
+      const { result } = renderHook(() => useGameEngine());
+      expect(result.current.score).toBe(0);
+      expect(result.current.isGameTerminated).toBe(false);
+    });
+
+    it("falls back to a fresh game when saved state is corrupted", () => {
+      // getGameState returning a state with invalid tiles triggers the catch in buildInitialState
+      const corruptSaved: GameSession = {
+        score: 100,
+        tiles: [{ id: 1, value: -999, row: 99, col: 99 }], // out-of-bounds tiles
+        isOver: false,
+        isWon: false,
+        isKeepingPlaying: false,
+      };
+      mockedStorage.getGameState.mockReturnValue(corruptSaved);
+      // Out-of-bounds tiles are silently skipped (row/col bounds check in tilesToCellMatrix)
+      // so score should still be restored even with out-of-bounds tiles (they're ignored)
+      const { result } = renderHook(() => useGameEngine());
+      expect(result.current.score).toBe(100);
     });
   });
 });

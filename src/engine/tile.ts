@@ -92,10 +92,22 @@ export interface TileData {
   readonly value: number;
 }
 
+/**
+ * Converts a runtime `Tile` to its storable `TileData` snapshot.
+ *
+ * Transient animation fields (`previousPosition`, `mergedFrom`) are
+ * intentionally dropped — they are meaningless after a page reload.
+ */
 export function serializeTile(tile: Tile): TileData {
   return { x: tile.x, y: tile.y, value: tile.value };
 }
 
+/**
+ * Reconstructs a `Tile` from its stored `TileData` snapshot.
+ *
+ * The restored tile has `previousPosition: null` and `mergedFrom: null`
+ * since animation history is not persisted.
+ */
 export function deserializeTile(data: TileData): Tile {
   return createTile({ x: data.x, y: data.y }, data.value);
 }
@@ -107,6 +119,6 @@ export function deserializeTile(data: TileData): Tile {
 /**
  * Returns true if the tile is within the bounds of an N×N grid.
  */
-export function withinBounds(tile: Tile, size: number = GRID_SIZE): boolean {
-  return tile.x >= 0 && tile.x < size && tile.y >= 0 && tile.y < size;
+export function withinBounds(pos: { readonly x: number; readonly y: number }, size: number = GRID_SIZE): boolean {
+  return pos.x >= 0 && pos.x < size && pos.y >= 0 && pos.y < size;
 }

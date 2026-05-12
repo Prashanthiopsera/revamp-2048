@@ -33,6 +33,23 @@ import type { Tile } from "./tile.js";
 // ---------------------------------------------------------------------------
 
 /**
+ * Memento snapshot for one-level undo (BRD FR-1).
+ *
+ * Mirrors the serializable fields of `GameState` but without `previousState`
+ * to prevent recursive type nesting. Stored in memory only — never persisted.
+ *
+ * Data classification: Public — tile positions and score only.
+ */
+export interface GameStateSnapshot {
+  readonly grid: Grid;
+  readonly score: number;
+  readonly bestScore: number;
+  readonly over: boolean;
+  readonly won: boolean;
+  readonly isKeepingPlaying: boolean;
+}
+
+/**
  * Complete game state — everything needed to render and persist a game session.
  *
  * Data classification: Public — tile positions and score only.
@@ -54,6 +71,12 @@ export interface GameState {
    * a method reference.
    */
   readonly isKeepingPlaying: boolean;
+  /**
+   * One-level undo snapshot. Updated before each MOVE action.
+   * Null when no undo is available (initial load, after RESTART).
+   * Session-only — never persisted to localStorage.
+   */
+  readonly previousState: GameStateSnapshot | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -63,7 +86,8 @@ export interface GameState {
 export type GameAction =
   | { readonly type: "MOVE"; readonly direction: Direction }
   | { readonly type: "RESTART" }
-  | { readonly type: "CONTINUE_AFTER_WIN" };
+  | { readonly type: "CONTINUE_AFTER_WIN" }
+  | { readonly type: "UNDO" };
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -75,7 +99,15 @@ export function createInitialState(size: number = GRID_SIZE, bestScore = 0): Gam
   for (let i = 0; i < STARTING_TILE_COUNT; i++) {
     grid.addRandomTile(SPAWN_PROBABILITY_OF_TWO);
   }
-  return { grid, score: 0, bestScore, over: false, won: false, isKeepingPlaying: false };
+  return {
+    grid,
+    score: 0,
+    bestScore,
+    over: false,
+    won: false,
+    isKeepingPlaying: false,
+    previousState: null,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -202,6 +234,17 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return state;
       }
 
+      // Snapshot the pre-move state so the player can undo (BRD FR-1).
+      // previousState carries no further previousState to avoid nesting.
+      const previousState: GameStateSnapshot = {
+        grid: state.grid,
+        score: state.score,
+        bestScore: state.bestScore,
+        over: state.over,
+        won: state.won,
+        isKeepingPlaying: state.isKeepingPlaying,
+      };
+
       const newScore = state.score + scoreDelta;
       const newBestScore = Math.max(state.bestScore, newScore);
       const isOver = !movesAvailable(grid);
@@ -214,6 +257,24 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         over: isOver,
         won: isWon,
         isKeepingPlaying: state.isKeepingPlaying,
+        previousState,
+      };
+    }
+
+    case "UNDO": {
+      // Undo is unavailable if: no history, game is over, or no previous snapshot.
+      if (state.previousState === null || state.over) return state;
+
+      const { previousState } = state;
+      return {
+        grid: previousState.grid,
+        score: previousState.score,
+        bestScore: previousState.bestScore,
+        over: previousState.over,
+        won: previousState.won,
+        isKeepingPlaying: previousState.isKeepingPlaying,
+        // One level only — clearing previousState prevents consecutive undos.
+        previousState: null,
       };
     }
 
@@ -225,6 +286,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case "RESTART": {
       // Preserve bestScore across restarts — it is an all-time record.
+      // Clear previousState: undo history does not survive a restart.
       return createInitialState(state.grid.size, state.bestScore);
     }
   }

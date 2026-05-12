@@ -26,8 +26,13 @@ import type { GameAction } from "../engine/reducer.js";
 // ---------------------------------------------------------------------------
 
 export interface ControlsProps {
-  /** Reducer dispatch from useGameEngine — used by the restart button. */
+  /** Reducer dispatch from useGameEngine — used by the restart and undo buttons. */
   readonly dispatch: React.Dispatch<GameAction>;
+  /**
+   * True when an undo snapshot is available and the game is in progress.
+   * Defaults to `false` (button disabled) when not provided.
+   */
+  readonly canUndo?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -41,7 +46,7 @@ const WEBGL_UNAVAILABLE_TOOLTIP =
 // Component
 // ---------------------------------------------------------------------------
 
-export function Controls({ dispatch }: ControlsProps): React.ReactElement {
+export function Controls({ dispatch, canUndo = false }: ControlsProps): React.ReactElement {
   const { mode, toggleMode } = useRenderMode();
   const webGlAvailable = hasWebGL();
 
@@ -57,6 +62,18 @@ export function Controls({ dispatch }: ControlsProps): React.ReactElement {
         onClick={() => { dispatch({ type: "RESTART" }); }}
       >
         {strings.NEW_GAME}
+      </button>
+
+      {/* Undo last move button (BRD FR-1) */}
+      <button
+        type="button"
+        className="control-button undo-button"
+        onClick={() => { dispatch({ type: "UNDO" }); }}
+        aria-label={strings.UNDO_LABEL}
+        disabled={!canUndo}
+        aria-disabled={!canUndo}
+      >
+        {strings.UNDO}
       </button>
 
       {/* 2D/3D render mode toggle */}

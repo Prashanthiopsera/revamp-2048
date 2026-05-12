@@ -3,6 +3,42 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Content Security Policy (WO-042).
+      - script-src 'self': Only scripts from the same origin are allowed.
+        React JSX never uses eval() or inline event handlers, so 'unsafe-inline'
+        and 'unsafe-eval' are not needed.
+      - style-src 'self' 'unsafe-inline': React Three Fiber (R3F) injects inline
+        canvas styles at runtime; 'unsafe-inline' is required for 3D mode.
+      - font-src 'self': WOFF2 fonts are self-hosted under /fonts/.
+      - img-src 'self' data: blob:: Vite may emit data-URIs for small assets;
+        blob: is needed by R3F's WebGL renderer for texture uploads.
+      - connect-src 'self': No external API calls; all data is local.
+      - object-src 'none': Disables Flash, Java applets, and other plug-ins.
+      - base-uri 'self': Prevents base-tag injection attacks.
+      - frame-ancestors 'none': Equivalent to X-Frame-Options: DENY.
+      - upgrade-insecure-requests: Upgrades any accidental HTTP sub-resources to HTTPS.
+
+      For server-side deployments, see SECURITY_HEADERS.md for recommended
+      response headers (HSTS, X-Content-Type-Options, Referrer-Policy, etc.)
+      that cannot be set via meta tags.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+        default-src 'self';
+        script-src 'self';
+        style-src 'self' 'unsafe-inline';
+        font-src 'self';
+        img-src 'self' data: blob:;
+        connect-src 'self';
+        object-src 'none';
+        base-uri 'self';
+        frame-ancestors 'none';
+        upgrade-insecure-requests
+      "
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>2048</title>
   </head>
   <body>

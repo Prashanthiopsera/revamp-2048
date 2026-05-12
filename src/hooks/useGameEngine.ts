@@ -40,6 +40,8 @@ export interface UseGameEngineResult {
   readonly isGameTerminated: boolean;
   /** True when the game was won and the player can still choose to continue. */
   readonly canContinue: boolean;
+  /** True when an undo snapshot is available and the game is still in progress. */
+  readonly canUndo: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -86,6 +88,8 @@ function buildInitialState(): GameState {
         over: saved.isOver,
         won: saved.isWon,
         isKeepingPlaying: saved.isKeepingPlaying,
+        // Undo history is session-only — not persisted to storage.
+        previousState: null,
       };
     } catch {
       // Corrupted saved state — fall back to fresh game
@@ -132,6 +136,7 @@ export function useGameEngine(): UseGameEngineResult {
 
   const isGameTerminated = state.over || (state.won && !state.isKeepingPlaying);
   const canContinue = state.won && !state.isKeepingPlaying && !state.over;
+  const canUndo = state.previousState !== null && !state.over;
 
   return {
     state,
@@ -140,5 +145,6 @@ export function useGameEngine(): UseGameEngineResult {
     bestScore: state.bestScore,
     isGameTerminated,
     canContinue,
+    canUndo,
   };
 }

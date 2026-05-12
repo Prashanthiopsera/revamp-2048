@@ -66,6 +66,10 @@ export interface StringMap {
   readonly RENDER_MODE_2D: string;
   readonly RENDER_MODE_3D: string;
   readonly RENDER_MODE_TOGGLE_LABEL: string;
+
+  // Undo action (BRD FR-1)
+  readonly UNDO: string;
+  readonly UNDO_LABEL: string;
 }
 
 /** Supported locale identifiers. Extend this union when adding a new locale. */
@@ -106,6 +110,9 @@ const en: StringMap = {
   RENDER_MODE_2D: "Classic 2D",
   RENDER_MODE_3D: "3D View",
   RENDER_MODE_TOGGLE_LABEL: "Switch rendering mode",
+
+  UNDO: "Undo",
+  UNDO_LABEL: "Undo last move",
 };
 
 // ---------------------------------------------------------------------------

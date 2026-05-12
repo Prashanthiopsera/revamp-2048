@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   createStorageAdapter,
   createFakeStorage,
@@ -51,6 +51,62 @@ describe("storage.ts (WO-011)", () => {
       store.setItem("b", "2");
       store.clear();
       expect(store.length).toBe(0);
+    });
+  });
+
+  describe("corrupt JSON handling (WO-033)", () => {
+    it("returns null when the versioned gameState key holds corrupt JSON (does not throw)", () => {
+      const { adapter, store } = makeAdapter();
+      store.setItem(STORAGE_KEYS.gameState, "NOT_VALID_{{{JSON");
+      expect(() => adapter.getGameState()).not.toThrow();
+      expect(adapter.getGameState()).toBeNull();
+    });
+
+    it("returns null when the versioned bestScore key holds corrupt JSON (does not throw)", () => {
+      const { adapter, store } = makeAdapter();
+      store.setItem(STORAGE_KEYS.bestScore, "NOT_VALID_{{{JSON");
+      expect(() => adapter.getBestScore()).not.toThrow();
+      expect(adapter.getBestScore()).toBe(0);
+    });
+
+    it("returns null when the versioned preferences key holds corrupt JSON (does not throw)", () => {
+      const { adapter, store } = makeAdapter();
+      store.setItem(STORAGE_KEYS.preferences, "NOT_VALID_{{{JSON");
+      expect(() => adapter.getUserPreference()).not.toThrow();
+      expect(adapter.getUserPreference()).toBeNull();
+    });
+  });
+
+  describe("fakeStorage fallback when localStorage is unavailable (WO-033)", () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("fakeStorage is a fully functional in-memory store (fallback behavior)", () => {
+      // Verifies the fallback store used when localStorage is blocked behaves correctly
+      const fakeStore = createFakeStorage();
+      expect(fakeStore.getItem("missing")).toBeNull();
+      fakeStore.setItem("key", "value");
+      expect(fakeStore.getItem("key")).toBe("value");
+      fakeStore.removeItem("key");
+      expect(fakeStore.getItem("key")).toBeNull();
+    });
+
+    it("adapter created with fakeStorage does not throw on write/read when localStorage is blocked", () => {
+      // Simulates the adapter being initialized with the fallback store
+      const fakeStore = createFakeStorage();
+      const adapter = createStorageAdapter(fakeStore);
+      expect(() => { adapter.setGameState(SAMPLE_STATE); }).not.toThrow();
+      expect(adapter.getGameState()).toEqual(SAMPLE_STATE);
+    });
+
+    it("write silently swallows errors when the underlying store throws (quota exceeded)", () => {
+      const fakeStore = createFakeStorage();
+      vi.spyOn(fakeStore, "setItem").mockImplementation(() => {
+        throw new Error("QuotaExceededError");
+      });
+      const adapter = createStorageAdapter(fakeStore);
+      expect(() => { adapter.setGameState(SAMPLE_STATE); }).not.toThrow();
     });
   });
 

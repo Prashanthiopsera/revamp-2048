@@ -8,3 +8,6 @@ dist/
 .cursor/hooks/
 .cursor/rules/forge-workflow.mdc
 coverage/
+
+# Lighthouse CI generated reports
+.lighthouseci/

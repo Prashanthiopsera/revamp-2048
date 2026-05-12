@@ -35,6 +35,10 @@ import {
 // Types
 // ---------------------------------------------------------------------------
 
+/**
+ * Configuration for `usePerformanceMonitor`.
+ * All fields are optional; defaults are sourced from `src/config.ts`.
+ */
 export interface UsePerformanceMonitorOptions {
   /** Only active when true — set to false when not in 3D mode. Default: true. */
   readonly enabled?: boolean;
@@ -54,6 +58,7 @@ export interface UsePerformanceMonitorOptions {
   readonly onFallback?: () => void;
 }
 
+/** Values returned by `usePerformanceMonitor`. */
 export interface UsePerformanceMonitorResult {
   /** Rolling-average FPS (rounded). 0 when the hook is disabled. Use for debug overlays. */
   readonly fps: number;
@@ -63,6 +68,20 @@ export interface UsePerformanceMonitorResult {
 // Hook
 // ---------------------------------------------------------------------------
 
+/**
+ * Tracks 3D rendering frame rate using `requestAnimationFrame` timing and fires
+ * callbacks when FPS drops below configured thresholds.
+ *
+ * @param options - Configuration overrides; all fields are optional.
+ * @returns Object containing the current rolling-average `fps`.
+ *
+ * @example
+ * const { fps } = usePerformanceMonitor({
+ *   enabled: mode === "3d",
+ *   onQualityReduction: () => setQualityReduced(true),
+ *   onFallback: () => toggleMode(),
+ * });
+ */
 export function usePerformanceMonitor(
   options: UsePerformanceMonitorOptions = {},
 ): UsePerformanceMonitorResult {

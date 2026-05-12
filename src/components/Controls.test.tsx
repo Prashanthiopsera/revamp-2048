@@ -155,6 +155,56 @@ describe("Controls (WO-021)", () => {
     });
   });
 
+  describe("Undo button (WO-038)", () => {
+    it("renders the Undo button", () => {
+      render(<Controls dispatch={makeDispatch()} canUndo={false} />, { wrapper });
+      expect(screen.getByRole("button", { name: strings.UNDO_LABEL })).toBeInTheDocument();
+    });
+
+    it("Undo button text comes from strings module", () => {
+      render(<Controls dispatch={makeDispatch()} canUndo={false} />, { wrapper });
+      const btn = screen.getByRole("button", { name: strings.UNDO_LABEL });
+      expect(btn.textContent).toBe(strings.UNDO);
+    });
+
+    it("Undo button is disabled when canUndo is false", () => {
+      render(<Controls dispatch={makeDispatch()} canUndo={false} />, { wrapper });
+      const btn = screen.getByRole("button", { name: strings.UNDO_LABEL });
+      expect(btn).toBeDisabled();
+    });
+
+    it("Undo button is disabled by default (canUndo not provided)", () => {
+      render(<Controls dispatch={makeDispatch()} />, { wrapper });
+      const btn = screen.getByRole("button", { name: strings.UNDO_LABEL });
+      expect(btn).toBeDisabled();
+    });
+
+    it("Undo button is enabled when canUndo is true", () => {
+      render(<Controls dispatch={makeDispatch()} canUndo={true} />, { wrapper });
+      const btn = screen.getByRole("button", { name: strings.UNDO_LABEL });
+      expect(btn).not.toBeDisabled();
+    });
+
+    it("dispatches UNDO when clicked and canUndo is true", () => {
+      const dispatch = makeDispatch();
+      render(<Controls dispatch={dispatch} canUndo={true} />, { wrapper });
+      fireEvent.click(screen.getByRole("button", { name: strings.UNDO_LABEL }));
+      expect(dispatch).toHaveBeenCalledWith({ type: "UNDO" });
+    });
+
+    it("Undo button has aria-label='Undo last move'", () => {
+      render(<Controls dispatch={makeDispatch()} canUndo={false} />, { wrapper });
+      const btn = screen.getByRole("button", { name: strings.UNDO_LABEL });
+      expect(btn.getAttribute("aria-label")).toBe(strings.UNDO_LABEL);
+    });
+
+    it("Undo button is a semantic button element", () => {
+      render(<Controls dispatch={makeDispatch()} canUndo={false} />, { wrapper });
+      const btn = screen.getByRole("button", { name: strings.UNDO_LABEL });
+      expect(btn.tagName.toLowerCase()).toBe("button");
+    });
+  });
+
   describe("group container", () => {
     it("renders controls in a group with aria-label", () => {
       render(<Controls dispatch={makeDispatch()} />, { wrapper });
