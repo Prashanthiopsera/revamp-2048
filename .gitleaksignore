@@ -1,0 +1,14 @@
+# Gitleaks false-positive suppressions for revamp-2048.
+#
+# Add entries here (one SHA per line, or rule:file patterns) only when a finding
+# is confirmed to be a non-sensitive false positive. Every suppression MUST have
+# a comment explaining why it is safe to ignore.
+#
+# Format: <commit-sha>:<rule-id>   OR   <file-glob>:<rule-id>
+#
+# Example (do not uncomment without a real reason):
+# abc123def456:generic-api-key  # test fixture — not a real key
+
+# The 2048 game is a static client-only app with no backend credentials.
+# All user data stays in localStorage (classified Public).
+# No secrets are expected in this repository.

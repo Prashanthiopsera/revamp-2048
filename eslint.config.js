@@ -44,7 +44,10 @@ export default tseslint.config(
         { prefer: "type-imports", fixStyle: "inline-type-imports" },
       ],
 
-      // Disallow dangerouslySetInnerHTML to prevent XSS (WO-043 prerequisite)
+      // Disallow dangerouslySetInnerHTML to prevent XSS vectors (WO-043).
+      // React renders all JSX expressions as text nodes by default; using
+      // dangerouslySetInnerHTML bypasses this and allows injected markup to
+      // execute. There is no legitimate use case in this codebase.
       "no-restricted-syntax": [
         "error",
         {

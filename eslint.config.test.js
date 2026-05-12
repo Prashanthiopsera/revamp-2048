@@ -10,38 +10,41 @@
  * TypeScript project service scope (projectService requires tsconfig coverage).
  */
 
+import { describe, it, expect, afterEach } from "vitest";
 import { ESLint } from "eslint";
-import assert from "node:assert/strict";
 import { writeFileSync, unlinkSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 const eslint = new ESLint();
-const FIXTURE_DIR = new URL("src/", import.meta.url).pathname;
+// process.cwd() is the repo root regardless of how Vitest resolves import.meta.url
+const FIXTURE_DIR = resolve(process.cwd(), "src");
+const fixtures = [];
 
 function writeFixture(name, code) {
   const path = join(FIXTURE_DIR, name);
   writeFileSync(path, code, "utf8");
+  fixtures.push(path);
   return path;
 }
 
-function removeFixture(path) {
-  try {
-    unlinkSync(path);
-  } catch {
-    // Ignore cleanup errors
+afterEach(() => {
+  for (const path of fixtures.splice(0)) {
+    try {
+      unlinkSync(path);
+    } catch {
+      // Ignore cleanup errors — fixture may already be gone
+    }
   }
-}
+});
 
-async function testConfigLoads() {
-  const cfg = await eslint.calculateConfigForFile("src/main.tsx");
-  assert.ok(cfg, "Config should resolve for a .tsx file");
-  console.log("  ✓ eslint.config.js loads without errors");
-}
+describe("ESLint config (WO-004)", () => {
+  it("loads without errors for a .tsx file", async () => {
+    const cfg = await eslint.calculateConfigForFile("src/main.tsx");
+    expect(cfg).toBeTruthy();
+  });
 
-async function testReactHooksRuleEnabled() {
-  // Calling a hook inside a regular function (not a component or custom hook) is a
-  // Rules of Hooks violation that react-hooks/rules-of-hooks must catch.
-  const code = `
+  it("react-hooks/rules-of-hooks flags a hook called inside a regular function", async () => {
+    const code = `
 import { useState } from "react";
 
 function notAComponent() {
@@ -51,91 +54,45 @@ function notAComponent() {
 
 export default notAComponent;
 `;
-  const path = writeFixture("__hooks_violation_fixture__.tsx", code);
-  try {
+    const path = writeFixture("__hooks_violation_fixture__.tsx", code);
     const results = await eslint.lintFiles([path]);
-    const result = results[0];
-    const hookViolation = result.messages.find((m) =>
+    const hookViolation = results[0].messages.find((m) =>
       m.ruleId?.includes("react-hooks/rules-of-hooks"),
     );
-    assert.ok(
+    expect(
       hookViolation,
-      `react-hooks/rules-of-hooks should flag a hook called inside a regular function. Got messages: ${JSON.stringify(result.messages.map((m) => m.ruleId))}`,
-    );
-    console.log("  ✓ react-hooks/rules-of-hooks flags violations correctly");
-  } finally {
-    removeFixture(path);
-  }
-}
+      `Expected react-hooks/rules-of-hooks violation. Got: ${JSON.stringify(results[0].messages.map((m) => m.ruleId))}`,
+    ).toBeTruthy();
+  });
 
-async function testDangerouslySetInnerHTMLBanned() {
-  const code = `
+  it("no-restricted-syntax bans dangerouslySetInnerHTML", async () => {
+    const code = `
 export function Unsafe() {
   return <div dangerouslySetInnerHTML={{ __html: "<b>hi</b>" }} />;
 }
 `;
-  const path = writeFixture("__xss_violation_fixture__.tsx", code);
-  try {
+    const path = writeFixture("__xss_violation_fixture__.tsx", code);
     const results = await eslint.lintFiles([path]);
-    const result = results[0];
-    const xssViolation = result.messages.find(
+    const xssViolation = results[0].messages.find(
       (m) =>
         m.ruleId === "no-restricted-syntax" && m.message.includes("dangerouslySetInnerHTML"),
     );
-    assert.ok(
+    expect(
       xssViolation,
-      `no-restricted-syntax should ban dangerouslySetInnerHTML. Got messages: ${JSON.stringify(result.messages.map((m) => ({ ruleId: m.ruleId, msg: m.message })))}`,
-    );
-    console.log("  ✓ dangerouslySetInnerHTML is banned by no-restricted-syntax");
-  } finally {
-    removeFixture(path);
-  }
-}
+      `Expected dangerouslySetInnerHTML ban. Got: ${JSON.stringify(results[0].messages.map((m) => ({ ruleId: m.ruleId, msg: m.message })))}`,
+    ).toBeTruthy();
+  });
 
-async function testCleanSrcLint() {
-  // Mirror of `npm run lint` — the real source tree must be error-free.
-  const results = await eslint.lintFiles(["src"]);
-  const errorCount = results.reduce((sum, r) => sum + r.errorCount, 0);
-  assert.equal(errorCount, 0, `Expected 0 lint errors in src/, got ${errorCount}`);
-  console.log("  ✓ src/ lints with 0 errors");
-}
+  it("src/ lints with 0 errors", async () => {
+    const results = await eslint.lintFiles(["src"]);
+    const errorCount = results.reduce((sum, r) => sum + r.errorCount, 0);
+    expect(errorCount).toBe(0);
+  });
 
-async function testPrettierConfigExists() {
-  // .prettierrc has no .json extension so we read it directly (import assertions
-  // require a .json extension in Node.js ESM).
-  const rc = JSON.parse(readFileSync(".prettierrc", "utf8"));
-  assert.equal(rc.singleQuote, true, ".prettierrc must set singleQuote: true");
-  assert.equal(rc.semi, true, ".prettierrc must set semi: true");
-  assert.equal(rc.printWidth, 100, ".prettierrc must set printWidth: 100");
-  console.log("  ✓ .prettierrc has required formatting rules");
-}
-
-async function runTests() {
-  const tests = [
-    testConfigLoads,
-    testReactHooksRuleEnabled,
-    testDangerouslySetInnerHTMLBanned,
-    testCleanSrcLint,
-    testPrettierConfigExists,
-  ];
-
-  let passed = 0;
-  let failed = 0;
-
-  console.log("\nESLint config tests (WO-004)\n");
-
-  for (const test of tests) {
-    try {
-      await test();
-      passed++;
-    } catch (err) {
-      console.error(`  ✗ ${test.name}: ${err instanceof Error ? err.message : String(err)}`);
-      failed++;
-    }
-  }
-
-  console.log(`\n${passed} passed, ${failed} failed\n`);
-  if (failed > 0) process.exit(1);
-}
-
-runTests();
+  it(".prettierrc has required formatting rules", () => {
+    const rc = JSON.parse(readFileSync(".prettierrc", "utf8"));
+    expect(rc.singleQuote).toBe(true);
+    expect(rc.semi).toBe(true);
+    expect(rc.printWidth).toBe(100);
+  });
+});

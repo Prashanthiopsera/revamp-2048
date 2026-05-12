@@ -1,12 +1,14 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import "./styles/main.scss";
+import { App } from "./App.js";
 
-const rootElement = document.getElementById('root');
+const rootElement = document.getElementById("root");
 
 if (rootElement) {
   createRoot(rootElement).render(
     <StrictMode>
-      <div>2048 — bootstrap entry. Real UI is wired up by WO-013 onwards.</div>
+      <App />
     </StrictMode>,
   );
 }

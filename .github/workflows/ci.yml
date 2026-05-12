@@ -1,0 +1,177 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-flight runs on the same branch/PR so a new push doesn't wait for stale jobs
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Security scans run in parallel with quality to minimize total pipeline time.
+  # Failures here block the deploy job via the `needs` chain on quality.
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: read
+      security-events: write # required to upload SARIF reports if added later
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history is needed for accurate secret-scan coverage
+          fetch-depth: 0
+
+      - name: Secret scanning (Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITLEAKS_LICENSE is not required for public repos
+        # .gitleaksignore at repo root suppresses known false positives
+
+      - name: Set up Node 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies (frozen lockfile)
+        run: npm ci
+
+      - name: Dependency vulnerability audit
+        # Fail the pipeline on any high or critical vulnerability in production deps.
+        # --omit=dev excludes devDependencies since they never ship to production.
+        run: npm audit --audit-level=high --omit=dev
+
+  quality:
+    name: Lint · Type-check · Test · Build
+    # Quality runs in parallel with security; deploy needs both to pass.
+    needs: []
+    runs-on: ubuntu-latest
+    timeout-minutes: 8 # PRD SLO: PR feedback under 8 minutes
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm # caches ~/.npm for fast reinstalls
+
+      - name: Install dependencies (frozen lockfile)
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm run test
+
+      - name: Build
+        run: npm run build
+
+      - name: Check bundle size budgets
+        # Fails CI if main chunk ≥ 200 KB gzipped or 3D lazy chunk ≥ 300 KB gzipped
+        run: npm run bundle:check
+
+      - name: Upload bundle analysis report
+        if: always() # upload even when the budget check fails so devs can debug
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-stats
+          path: dist/stats.html
+          retention-days: 30
+
+  lighthouse:
+    name: Lighthouse CI
+    needs: [quality]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies (frozen lockfile)
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Run Lighthouse CI
+        # Serves dist/ via LHCI's built-in static server, then runs Lighthouse
+        # and asserts: performance ≥ 0.90, accessibility ≥ 0.90, best-practices ≥ 0.85.
+        run: npm run lhci
+
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: .lighthouseci
+          retention-days: 30
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: [quality, security]
+    # Only deploy on pushes to main — PRs never trigger deployment
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies (frozen lockfile)
+        run: npm ci
+
+      - name: Build
+        # Derive the base path from GITHUB_REPOSITORY (e.g. "owner/revamp-2048" → "/revamp-2048/").
+        # For repos deployed at a custom domain or org root, override VITE_BASE_PATH to "/".
+        env:
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
+        run: npm run build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
