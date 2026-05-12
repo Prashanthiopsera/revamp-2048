@@ -1,0 +1,452 @@
+/**
+ * main.scss — global styles for revamp-2048.
+ *
+ * Vendor-prefix mixins from the legacy helpers.scss have been removed.
+ * Modern browsers (Chrome ≥88, Firefox ≥90, Safari ≥15) support transform,
+ * transition, and animation without prefixes, and the Vite build can add
+ * prefixes automatically via postcss-preset-env if needed.
+ *
+ * Structure:
+ *   _variables.scss → design tokens
+ *   main.scss       → base, layout, board, tiles, score, message, controls
+ */
+
+@use './variables' as *;
+@use 'sass:list';
+@use 'sass:color';
+
+// ---------------------------------------------------------------------------
+// Reset & base
+// ---------------------------------------------------------------------------
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  font-size: $font-size-base;
+}
+
+body {
+  margin: 80px 0;
+  background-color: $color-bg;
+  color: $color-text;
+  font-family: $font-family;
+  font-size: $font-size-base;
+}
+
+// ---------------------------------------------------------------------------
+// Layout
+// ---------------------------------------------------------------------------
+
+.container {
+  width: $container-width;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.title {
+  font-size: $font-size-title;
+  font-weight: 700;
+  color: $color-text;
+  flex: 1;
+  line-height: 1;
+}
+
+// ---------------------------------------------------------------------------
+// Score boxes
+// ---------------------------------------------------------------------------
+
+.scores-container {
+  display: flex;
+  gap: 5px;
+}
+
+.score-container,
+.best-container {
+  background: $color-score-bg;
+  padding: 15px 25px;
+  font-size: $font-size-score;
+  color: $color-score-text;
+  font-weight: 700;
+  min-width: 100px;
+  text-align: center;
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+}
+
+.score-label,
+.best-label {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.score-value,
+.best-value {
+  font-size: 25px;
+  font-weight: 700;
+}
+
+// +N animation element
+.score-addition {
+  position: absolute;
+  right: 30px;
+  bottom: 10px;
+  color: $color-text;
+  font-size: $font-size-score;
+  font-weight: 700;
+  animation: move-up $animation-duration-appear ease-in forwards;
+  pointer-events: none;
+}
+
+@keyframes move-up {
+  0%   { transform: translateY(0);    opacity: 1; }
+  100% { transform: translateY(-50px); opacity: 0; }
+}
+
+// ---------------------------------------------------------------------------
+// Above-game controls area
+// ---------------------------------------------------------------------------
+
+.above-game {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.game-intro {
+  font-size: 1.1em;
+  color: $color-text;
+}
+
+// ---------------------------------------------------------------------------
+// Controls
+// ---------------------------------------------------------------------------
+
+.game-controls {
+  display: flex;
+  gap: 5px;
+}
+
+.control-button {
+  display: inline-block;
+  background: $color-board;
+  color: $color-text-light;
+  padding: 0 20px;
+  text-decoration: none;
+  border-radius: 3px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  min-height: 44px;   // meets 44px touch-target guideline
+  min-width: 44px;
+  font-family: $font-family;
+  transition: background-color 100ms ease;
+
+  &:hover {
+    background: color.adjust($color-board, $lightness: -5%);
+  }
+
+  &:disabled,
+  &[aria-disabled='true'] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Game container (outer wrapper for board + overlay)
+// ---------------------------------------------------------------------------
+
+.game-container {
+  position: relative;
+  padding: $grid-padding;
+  cursor: default;
+  user-select: none;
+  touch-action: none;
+  background: $color-board;
+  border-radius: 6px;
+  width: $container-width;
+  margin: 0 auto;
+}
+
+// ---------------------------------------------------------------------------
+// Background grid
+// ---------------------------------------------------------------------------
+
+.grid-container {
+  position: absolute;
+  top: $grid-padding;
+  left: $grid-padding;
+}
+
+.grid-row {
+  display: flex;
+  gap: $tile-margin;
+  margin-bottom: $tile-margin;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.grid-cell {
+  width: $tile-size;
+  height: $tile-size;
+  background: $color-tile-empty;
+  border-radius: 3px;
+}
+
+// ---------------------------------------------------------------------------
+// Tile container (overlay over background)
+// ---------------------------------------------------------------------------
+
+.tile-container {
+  position: relative;
+  z-index: 2;
+  // height = grid-size × tile-size + (grid-size - 1) × tile-margin
+  height: calc(#{$grid-size} * #{$tile-size} + (#{$grid-size} - 1) * #{$tile-margin});
+}
+
+// ---------------------------------------------------------------------------
+// Tiles
+// ---------------------------------------------------------------------------
+
+.tile {
+  position: absolute;
+  width: $tile-size;
+  height: $tile-size;
+  border-radius: 3px;
+  transition: transform $animation-duration-slide ease;
+
+  // Position classes: tile-position-{col}-{row} (1-indexed)
+  @for $col from 1 through $grid-size {
+    @for $row from 1 through $grid-size {
+      &.tile-position-#{$col}-#{$row} {
+        $x: calc((#{$col} - 1) * (#{$tile-size} + #{$tile-margin}));
+        $y: calc((#{$row} - 1) * (#{$tile-size} + #{$tile-margin}));
+        transform: translate($x, $y);
+      }
+    }
+  }
+}
+
+.tile-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 3px;
+  font-size: 55px;
+  font-weight: 700;
+  background: $color-tile-bg;
+  color: $color-text;
+}
+
+// Value-specific colours
+@each $value, $colors in $tile-colors {
+  .tile-#{$value} > .tile-inner {
+    background-color: list.nth($colors, 1);
+    color: list.nth($colors, 2);
+  }
+}
+
+// Font sizes for large values
+@each $value, $size in $tile-font-sizes {
+  .tile-#{$value} > .tile-inner {
+    font-size: $size;
+  }
+}
+
+// Super tile — values beyond 2048
+.tile-super > .tile-inner {
+  background-color: #3c3a32;
+  color: $color-text-light;
+  font-size: 30px;
+}
+
+// Appear animation (new tiles)
+.tile-new > .tile-inner {
+  animation: appear $animation-duration-appear ease forwards;
+}
+
+// Pop animation (merged tiles)
+.tile-merged > .tile-inner {
+  animation: pop $animation-duration-pop ease forwards;
+}
+
+@keyframes appear {
+  0%   { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pop {
+  0%   { transform: scale(0); opacity: 0; }
+  50%  { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+// ---------------------------------------------------------------------------
+// Game message overlay
+// ---------------------------------------------------------------------------
+
+.game-message {
+  position: absolute;
+  inset: 0;
+  background: rgba(238, 228, 218, 0.73);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-radius: 6px;
+  animation: fade-in 800ms ease forwards;
+
+  &.game-won {
+    background: rgba(237, 194, 46, 0.5);
+    color: $color-text-light;
+  }
+}
+
+.game-message-title {
+  font-size: 60px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.game-message-subtitle {
+  font-size: 18px;
+  margin-bottom: 20px;
+}
+
+.game-message-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.keep-playing-button,
+.retry-button {
+  @extend .control-button;
+}
+
+@keyframes fade-in {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+// ---------------------------------------------------------------------------
+// Explanation footer
+// ---------------------------------------------------------------------------
+
+.game-explanation {
+  margin-top: 30px;
+  font-size: 14px;
+  line-height: 1.65;
+
+  strong {
+    font-weight: 700;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Responsive — mobile
+// ---------------------------------------------------------------------------
+
+$tile-size-mobile: 57.75px;
+$tile-margin-mobile: 10px;
+$container-width-mobile: 280px;
+$grid-padding-mobile: 10px;
+
+@media screen and (max-width: 520px) {
+  html {
+    font-size: 14px;
+  }
+
+  body {
+    margin: 20px 0;
+  }
+
+  .container {
+    width: $container-width-mobile;
+  }
+
+  .title {
+    font-size: 40px;
+  }
+
+  .score-container,
+  .best-container {
+    padding: 10px 15px;
+    min-width: 64px;
+  }
+
+  .game-container {
+    width: $container-width-mobile;
+    padding: $grid-padding-mobile;
+  }
+
+  .grid-container {
+    top: $grid-padding-mobile;
+    left: $grid-padding-mobile;
+  }
+
+  .grid-row {
+    gap: $tile-margin-mobile;
+    margin-bottom: $tile-margin-mobile;
+  }
+
+  .grid-cell {
+    width: $tile-size-mobile;
+    height: $tile-size-mobile;
+  }
+
+  .tile-container {
+    height: calc(#{$grid-size} * #{$tile-size-mobile} + (#{$grid-size} - 1) * #{$tile-margin-mobile});
+  }
+
+  .tile {
+    width: $tile-size-mobile;
+    height: $tile-size-mobile;
+
+    @for $col from 1 through $grid-size {
+      @for $row from 1 through $grid-size {
+        &.tile-position-#{$col}-#{$row} {
+          $x: calc((#{$col} - 1) * (#{$tile-size-mobile} + #{$tile-margin-mobile}));
+          $y: calc((#{$row} - 1) * (#{$tile-size-mobile} + #{$tile-margin-mobile}));
+          transform: translate($x, $y);
+        }
+      }
+    }
+  }
+
+  .tile-inner {
+    font-size: 30px;
+  }
+
+  @each $value, $size in $tile-font-sizes {
+    .tile-#{$value} > .tile-inner {
+      font-size: calc(#{$size} * 0.65);
+    }
+  }
+
+  .game-message-title {
+    font-size: 30px;
+  }
+}

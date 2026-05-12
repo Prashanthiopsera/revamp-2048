@@ -1,0 +1,58 @@
+// ---------------------------------------------------------------------------
+// Design tokens — mirrors gabrielecirulli/2048 visual identity
+// ---------------------------------------------------------------------------
+
+// Grid
+$grid-size: 4;
+$tile-size: 106.25px;   // approx cell width in the 500px container
+$tile-margin: 15px;
+
+$container-width: 500px;
+$grid-padding: 15px;
+
+// Typography
+$font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif;
+$font-size-base: 18px;
+$font-size-title: 80px;
+$font-size-score: 25px;
+
+// Colours — body
+$color-bg: #faf8ef;
+$color-text: #776e65;
+$color-text-light: #f9f6f2;
+$color-tile-bg: #eee4da;
+$color-board: #bbada0;
+$color-tile-empty: rgba(238, 228, 218, 0.35);
+
+// Score boxes
+$color-score-bg: #bbada0;
+$color-score-text: #eee4da;
+
+// Tile colours — value → background, text
+$tile-colors: (
+  2:    (#eee4da, $color-text),
+  4:    (#ede0c8, $color-text),
+  8:    (#f2b179, $color-text-light),
+  16:   (#f59563, $color-text-light),
+  32:   (#f67c5f, $color-text-light),
+  64:   (#f65e3b, $color-text-light),
+  128:  (#edcf72, $color-text-light),
+  256:  (#edcc61, $color-text-light),
+  512:  (#edc850, $color-text-light),
+  1024: (#edc53f, $color-text-light),
+  2048: (#edc22e, $color-text-light),
+);
+
+// Tile font sizes — value → font-size
+$tile-font-sizes: (
+  128:  45px,
+  256:  45px,
+  512:  45px,
+  1024: 35px,
+  2048: 35px,
+);
+
+// Animation durations (kept in sync with config.ts constants)
+$animation-duration-slide:  100ms;
+$animation-duration-appear: 200ms;
+$animation-duration-pop:    200ms;
