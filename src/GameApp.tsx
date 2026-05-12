@@ -20,6 +20,7 @@ import { useInputHandler } from "./hooks/useInputHandler.js";
 import { useRenderMode } from "./RenderModeContext.js";
 import { strings } from "./strings.js";
 import { Board } from "./components/Board.js";
+import { ScoreBoard } from "./components/ScoreBoard.js";
 
 export function GameApp(): React.ReactElement {
   const { state, dispatch, score, bestScore, isGameTerminated, canContinue } = useGameEngine();
@@ -35,21 +36,7 @@ export function GameApp(): React.ReactElement {
       <header className="header">
         <h1 className="title">{strings.GAME_TITLE}</h1>
 
-        {/* Score boxes — replaced by <ScoreBoard> in WO-019 */}
-        <div className="scores-container" role="region" aria-label="Scores">
-          <div className="score-container" aria-live="polite" aria-atomic="true">
-            <div className="score-label">{strings.SCORE_LABEL}</div>
-            <div className="score-value" aria-label={strings.SCORE_ANNOUNCEMENT.replace("{score}", String(score))}>
-              {score}
-            </div>
-          </div>
-          <div className="best-container" aria-live="polite" aria-atomic="true">
-            <div className="best-label">{strings.BEST_LABEL}</div>
-            <div className="best-value" aria-label={strings.BEST_ANNOUNCEMENT.replace("{score}", String(bestScore))}>
-              {bestScore}
-            </div>
-          </div>
-        </div>
+        <ScoreBoard score={score} bestScore={bestScore} />
 
         {/* Controls — New Game + render mode toggle; replaced by <Controls> in WO-021 */}
         <div className="above-game">
