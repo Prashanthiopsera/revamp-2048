@@ -75,9 +75,9 @@ describe("App (WO-017)", () => {
     expect(btn.textContent).toBe(strings.RENDER_MODE_2D);
   });
 
-  it("renders the game board placeholder", () => {
+  it("renders the game board", () => {
     render(<App />);
-    expect(screen.getByTestId("board-placeholder")).toBeInTheDocument();
+    expect(screen.getByTestId("board")).toBeInTheDocument();
   });
 
   it("renders the how-to-play section", () => {

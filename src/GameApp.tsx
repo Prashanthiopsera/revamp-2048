@@ -19,6 +19,7 @@ import { useGameEngine } from "./hooks/useGameEngine.js";
 import { useInputHandler } from "./hooks/useInputHandler.js";
 import { useRenderMode } from "./RenderModeContext.js";
 import { strings } from "./strings.js";
+import { Board } from "./components/Board.js";
 
 export function GameApp(): React.ReactElement {
   const { state, dispatch, score, bestScore, isGameTerminated, canContinue } = useGameEngine();
@@ -120,17 +121,9 @@ export function GameApp(): React.ReactElement {
           </div>
         )}
 
-        {/* Board placeholder — replaced by <Board> in WO-018 */}
-        <div
-          className="grid-container"
-          aria-label="Game board"
-          data-render-mode={mode}
-          data-testid="board-placeholder"
-        >
-          {/* WO-018: mount <Board state={state} /> here */}
-          <div className="grid-row-count" style={{ display: "none" }}>
-            {state.grid.size}
-          </div>
+        {/* Board — renders the 4×4 grid and all active tiles */}
+        <div data-render-mode={mode}>
+          <Board grid={state.grid} />
         </div>
       </main>
 
