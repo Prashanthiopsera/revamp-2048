@@ -21,6 +21,7 @@ import { useRenderMode } from "./RenderModeContext.js";
 import { strings } from "./strings.js";
 import { Board } from "./components/Board.js";
 import { ScoreBoard } from "./components/ScoreBoard.js";
+import { GameMessage } from "./components/GameMessage.js";
 
 export function GameApp(): React.ReactElement {
   const { state, dispatch, score, bestScore, isGameTerminated, canContinue } = useGameEngine();
@@ -64,48 +65,13 @@ export function GameApp(): React.ReactElement {
 
       {/* ── Game area ───────────────────────────────────────────── */}
       <main className="game-container" aria-label="2048 game board">
-        {/* Game message overlay — replaced by <GameMessage> in WO-020 */}
+        {/* Win / loss overlay */}
         {isGameTerminated && (
-          <div className="game-message" role="status" aria-live="assertive">
-            {state.won ? (
-              <>
-                <p className="game-message-title">{strings.GAME_WON}</p>
-                <p className="game-message-subtitle">{strings.GAME_WON_SUBTITLE}</p>
-                <div className="game-message-actions">
-                  {canContinue && (
-                    <button
-                      type="button"
-                      className="keep-playing-button"
-                      onClick={() => { dispatch({ type: "CONTINUE_AFTER_WIN" }); }}
-                    >
-                      {strings.KEEP_PLAYING}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="retry-button"
-                    onClick={() => { dispatch({ type: "RESTART" }); }}
-                  >
-                    {strings.TRY_AGAIN}
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <p className="game-message-title">{strings.GAME_OVER}</p>
-                <p className="game-message-subtitle">{strings.GAME_OVER_SUBTITLE}</p>
-                <div className="game-message-actions">
-                  <button
-                    type="button"
-                    className="retry-button"
-                    onClick={() => { dispatch({ type: "RESTART" }); }}
-                  >
-                    {strings.TRY_AGAIN}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+          <GameMessage
+            isWon={state.won}
+            canContinue={canContinue}
+            dispatch={dispatch}
+          />
         )}
 
         {/* Board — renders the 4×4 grid and all active tiles */}
