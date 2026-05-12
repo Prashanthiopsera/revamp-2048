@@ -22,10 +22,11 @@ import { strings } from "./strings.js";
 import { Board } from "./components/Board.js";
 import { ScoreBoard } from "./components/ScoreBoard.js";
 import { GameMessage } from "./components/GameMessage.js";
+import { Controls } from "./components/Controls.js";
 
 export function GameApp(): React.ReactElement {
   const { state, dispatch, score, bestScore, isGameTerminated, canContinue } = useGameEngine();
-  const { mode, toggleMode } = useRenderMode();
+  const { mode } = useRenderMode();
 
   // Attach keyboard + touch input to window. isGameTerminated suppresses MOVE
   // but still allows RESTART (the R key and button always work).
@@ -39,27 +40,9 @@ export function GameApp(): React.ReactElement {
 
         <ScoreBoard score={score} bestScore={bestScore} />
 
-        {/* Controls — New Game + render mode toggle; replaced by <Controls> in WO-021 */}
         <div className="above-game">
           <p className="game-intro">{strings.GAME_SUBTITLE}</p>
-          <div className="game-controls">
-            <button
-              className="restart-button"
-              onClick={() => { dispatch({ type: "RESTART" }); }}
-              type="button"
-            >
-              {strings.NEW_GAME}
-            </button>
-            <button
-              className="render-toggle-button"
-              onClick={toggleMode}
-              type="button"
-              aria-label={strings.RENDER_MODE_TOGGLE_LABEL}
-              title={mode === "2d" ? strings.RENDER_MODE_3D : strings.RENDER_MODE_2D}
-            >
-              {mode === "2d" ? strings.RENDER_MODE_3D : strings.RENDER_MODE_2D}
-            </button>
-          </div>
+          <Controls dispatch={dispatch} />
         </div>
       </header>
 

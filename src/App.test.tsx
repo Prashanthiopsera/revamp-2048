@@ -10,7 +10,7 @@ import { App } from "./App.js";
 import { strings } from "./strings.js";
 
 // ---------------------------------------------------------------------------
-// Mock storage so tests don't touch localStorage
+// Mock storage and capabilities so tests don't touch localStorage / canvas
 // ---------------------------------------------------------------------------
 
 vi.mock("./storage.js", () => ({
@@ -23,6 +23,23 @@ vi.mock("./storage.js", () => ({
     getUserPreference: vi.fn(() => null),
     setUserPreference: vi.fn(),
   },
+}));
+
+// hasWebGL() requires a real canvas context which JSDOM doesn't provide.
+// Mock it to return true so the render-mode toggle is enabled in tests.
+vi.mock("./capabilities.js", () => ({
+  hasWebGL: vi.fn(() => true),
+  hasLocalStorage: vi.fn(() => true),
+  prefersReducedMotion: vi.fn(() => false),
+  hasTouchSupport: vi.fn(() => false),
+  hasPointerSupport: vi.fn(() => true),
+  getCapabilities: vi.fn(() => ({
+    webgl: true,
+    localStorage: true,
+    prefersReducedMotion: false,
+    touch: false,
+    pointer: true,
+  })),
 }));
 
 beforeEach(() => {
